@@ -44,7 +44,7 @@
     if ((m = t.match(/\b(?:at|en)\s+([A-Z0-9][A-Za-z0-9&'.\-*# ]{2,40}?)(?=\s+(?:on|el|con|using|with|por|from)\b|[.,;\n]|$)/))) return clean(m[1]);
     return '';
   }
-  const clean = (s) => s.replace(/[*#]+/g, ' ').replace(/\s{2,}/g, ' ').trim().slice(0, 48);
+  const clean = (s) => s.replace(/[*#]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s:–-]+/, '').trim().slice(0, 48);
 
   function parseOne(text) {
     const t = text.replace(/\r/g, '').replace(/ /g, ' ');
@@ -76,6 +76,19 @@
     return split(text).map(parseOne).filter(Boolean).map((p) => ({ ...p, duplicate: seen.has(p.key) }));
   }
 
+  // correos que llegan de Gmail: cada uno con su id, así nunca se registra dos veces
+  function parseMessages(msgs) {
+    const seen = new Set(S().state.tx.filter((t) => t.emailId).map((t) => t.emailId));
+    return msgs.map((m) => {
+      const p = parseOne(m.text);
+      if (!p) return null;
+      // si el correo no trae fecha legible, la del correo mismo
+      if (!/\d{4}-\d{2}-\d{2}|\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}|\bde\s+[a-z]+\s+(?:de\s+)?\d{4}|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}/i.test(m.text)) p.date = m.date;
+      const key = `gm:${m.id}`;
+      return { ...p, key, subject: m.subject, duplicate: seen.has(key) || seen.has(p.key) };
+    }).filter(Boolean);
+  }
+
   // ejemplos para probar el lector sin tener que copiar un correo real
   const EJEMPLO = `De: BBVA México <notificaciones@bbva.mx>
 Asunto: Compra aprobada con tu tarjeta
@@ -88,5 +101,5 @@ From: Wells Fargo Alerts <alerts@notify.wellsfargo.com>
 Subject: You made a purchase
 You made a debit card purchase of $54.21 at TRADER JOE'S #512 on 10/22/2026 using card ending in 0193.`;
 
-  window.Correo = { parse, EJEMPLO };
+  window.Correo = { parse, parseMessages, EJEMPLO };
 })();

@@ -74,6 +74,7 @@
     return `<li class="row tap" data-act="edit-tx" data-id="${t.id}" tabindex="0">${avatarOf(acc)}<div style="min-width:0"><span class="name">${esc(t.merchant || catName(t))}</span><span class="sub">${esc(catName(t))} · ${esc(S.relDate(t.date))}</span></div><div class="amt">${txAmount(t)}</div></li>`;
   }
 
+  const mailBtn = () => (window.Gmail.ready() ? `<button class="btn keep" data-act="gmail-sync">${icon('mail')}Revisar Gmail</button>` : `<button class="btn" data-act="paste-email">${icon('mail')}Pegar correos</button>`);
   const sampleNote = () => S.state.sample ? `<div class="sample-note"><span>Estás viendo datos de ejemplo. Cuando quieras, bórralos y empieza con tus cuentas reales.</span><button class="btn small" data-act="start-real">Empezar con mis datos</button></div>` : '';
 
   // ======================================================================
@@ -114,7 +115,7 @@
       ${sampleNote()}
       <div class="title-row">
         <div><h1>Resumen de ${monthLabel}</h1><p class="sub">${A.free >= 0 ? `Te quedan ${m0(free)} libres en tu plan para ${plural(A.daysLeft, 'día', 'días')}.` : `Ya gastaste ${m0(-A.free)} más de lo que tenías planeado este mes.`}</p></div>
-        <div class="actions"><button class="btn" data-act="paste-email">${icon('mail')}Pegar correos</button><button class="btn primary keep" data-act="add-expense">${icon('plus')}Agregar gasto</button></div>
+        <div class="actions">${mailBtn()}<button class="btn primary keep" data-act="add-expense">${icon('plus')}Agregar gasto</button></div>
       </div>
 
       <div class="grid">
@@ -248,7 +249,7 @@
           <div class="action-tiles" style="margin:0">
             <button class="action-tile" data-act="add-expense">${icon('minus')}Gasto</button>
             <button class="action-tile" data-act="add-income">${icon('down')}Ingreso</button>
-            <button class="action-tile" data-act="paste-email">${icon('mail')}Pegar correo</button>
+            ${window.Gmail.ready() ? `<button class="action-tile" data-act="gmail-sync">${icon('mail')}Revisar Gmail</button>` : `<button class="action-tile" data-act="paste-email">${icon('mail')}Pegar correo</button>`}
             <button class="action-tile" data-act="transfer">${icon('swap')}Pasar dinero</button>
           </div>
           <section class="card">
@@ -308,7 +309,7 @@
     <div class="wrap">
       ${sampleNote()}
       <div class="title-row"><div><h1>Movimientos</h1><p class="sub num">${F.month ? S.monthName(F.month) : 'Todos'} · ${plural(list.length, 'movimiento', 'movimientos')} · gastos ${esc(m2(out))} · ingresos ${esc(m2(inc))}</p></div>
-        <div class="actions"><button class="btn keep" data-act="paste-email">${icon('mail')}Pegar correos</button><button class="btn" data-act="add-income">${icon('down')}Ingreso</button><button class="btn primary keep" data-act="add-expense">${icon('plus')}Gasto</button></div></div>
+        <div class="actions">${mailBtn()}<button class="btn" data-act="add-income">${icon('down')}Ingreso</button><button class="btn primary keep" data-act="add-expense">${icon('plus')}Gasto</button></div></div>
       <section class="card">
         <div class="filters">
           <input class="input search" type="search" placeholder="Buscar comercio o nota" value="${esc(F.q)}" data-filter="q" aria-label="Buscar">
@@ -470,11 +471,18 @@
           <div><button class="btn small" data-act="add-bill">${icon('plus')}Agregar pago fijo</button></div>
         </div></div>
 
-      <div class="set-row"><div><h2>Correos de tu banco</h2><p>BBVA y Wells Fargo te mandan un correo por cada compra. Cópialo de Gmail y pégalo aquí; la app saca el monto, el comercio, la fecha y la tarjeta.</p></div>
+      <div class="set-row"><div><h2>Gmail</h2><p>La app lee de tu Gmail solo los avisos de BBVA y Wells Fargo, directo de Google a este dispositivo. El permiso es de solo lectura y no se guarda: dura mientras la app está abierta.</p>${st.gmailLastSync ? `<p>Última revisión: ${S.shortDate(S.iso(new Date(st.gmailLastSync)))}, ${new Date(st.gmailLastSync).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.</p>` : ''}</div>
         <div class="set-panel">
-          <ol class="steps"><li>En la app de BBVA: Menú → Configuración → Notificaciones → activa "Compras con tarjeta" por correo.</li><li>En Wells Fargo: Menu → Alerts → Account Alerts → activa "Purchases" por email.</li><li>En Gmail, abre el aviso, selecciona todo el texto y cópialo. Puedes pegar varios a la vez.</li></ol>
-          <div><button class="btn small" data-act="paste-email">${icon('mail')}Pegar correos</button></div>
-          <p class="small muted">Siguiente paso: conectar Gmail para que los avisos entren solos, sin copiar y pegar.</p>
+          <div class="switch-row"><div><div class="t">Conexión con Gmail <span class="pill ${window.Gmail.ready() ? 'pos' : ''}">${window.Gmail.ready() ? 'Lista' : 'Sin configurar'}</span></div><div class="d">${window.Gmail.ready() ? 'Toca "Revisar Gmail" en Inicio o en Movimientos para traer tus avisos nuevos.' : 'Pega el ID de cliente que creaste en Google Cloud (los pasos están abajo).'}</div></div></div>
+          <div class="field"><label for="g-client">ID de cliente de Google</label><input class="input" id="g-client" data-setting="gmailClientId" value="${esc(st.gmailClientId || '')}" placeholder="123456789-abc.apps.googleusercontent.com" autocapitalize="none" autocorrect="off" spellcheck="false"><span class="hint">No es una contraseña: es el nombre público de tu app en Google.</span></div>
+          <div class="form-grid">
+            <div class="field"><label for="g-acc">Tu correo de Gmail</label><input class="input" id="g-acc" type="email" data-setting="gmailAccount" value="${esc(st.gmailAccount || '')}" placeholder="tucorreo@gmail.com" autocapitalize="none"></div>
+            <div class="field"><label for="g-from">Otros remitentes</label><input class="input" id="g-from" data-setting="gmailExtraFrom" value="${esc(st.gmailExtraFrom || '')}" placeholder="nu.com.mx, chase.com" autocapitalize="none"><span class="hint">Separados por comas, si tienes otros bancos.</span></div>
+          </div>
+          <div class="actions">${window.Gmail.ready() ? `<button class="btn small primary" data-act="gmail-sync">${icon('mail')}Revisar Gmail</button><button class="btn small danger" data-act="gmail-off">Desconectar</button>` : ''}<button class="btn small" data-act="paste-email">Pegar un correo a mano</button></div>
+          <details><summary class="small" style="cursor:pointer;font-weight:500">Cómo crear el ID de cliente (una sola vez, 10 minutos)</summary>
+          <ol class="steps" style="margin-top:12px"><li>Entra a console.cloud.google.com con tu cuenta de Gmail y crea un proyecto llamado "Mis Finanzas".</li><li>En "APIs y servicios" → Biblioteca, busca "Gmail API" y toca Habilitar.</li><li>En "Google Auth Platform" (pantalla de consentimiento) toca Comenzar: nombre "Mis Finanzas", tu correo de soporte, público Externo y tu correo de contacto.</li><li>En Público → Usuarios de prueba, agrega tu propio correo de Gmail.</li><li>En Clientes → Crear cliente: tipo "Aplicación web". En "Orígenes de JavaScript autorizados" agrega ${esc(location.origin)}</li><li>Copia el ID de cliente que te da y pégalo arriba.</li></ol></details>
+          <ol class="steps"><li>En la app de BBVA: Menú → Configuración → Notificaciones → activa "Compras con tarjeta" por correo.</li><li>En Wells Fargo: Menu → Alerts → Account Alerts → activa "Purchases" por email.</li></ol>
         </div></div>
 
       <div class="set-row"><div><h2>Instalar en tu iPhone</h2><p>Se instala como app y funciona sin conexión. Tus datos de la computadora y del iPhone se pasan con un respaldo.</p></div>
@@ -566,16 +574,16 @@
     ['#t-from', '#t-to', '#t-amt', '#t-fx'].forEach((s) => $(s).addEventListener('input', upd)); upd();
   }
 
-  function emailDialog() {
-    openDialog(`<div class="dlg">${head('Pegar correos del banco', 'Copia el aviso de compra de BBVA o Wells Fargo desde Gmail y pégalo aquí. Puedes pegar varios.')}
-      <div class="field"><label for="e-text">Texto del correo</label><textarea class="input" id="e-text" placeholder="Pega aquí el correo completo…" autofocus></textarea><span class="hint">Nada sale de tu dispositivo: la lectura se hace aquí mismo.</span></div>
-      <div class="actions"><button class="btn small" id="e-read">Leer correos</button><button class="btn small ghost" id="e-sample">Probar con un ejemplo</button></div>
+  function emailDialog(pre = null) {
+    openDialog(`<div class="dlg">${pre ? head('Avisos de tu Gmail', `Leí ${plural(pre.read, 'correo', 'correos')} de BBVA y Wells Fargo${S.state.settings.gmailLastSync ? ` desde el ${S.shortDate(S.iso(new Date(S.state.settings.gmailLastSync)))}` : ' de los últimos 30 días'}.`) : head('Pegar correos del banco', 'Copia el aviso de compra de BBVA o Wells Fargo desde Gmail y pégalo aquí. Puedes pegar varios.')}
+      ${pre ? '' : `<div class="field"><label for="e-text">Texto del correo</label><textarea class="input" id="e-text" placeholder="Pega aquí el correo completo…" autofocus></textarea><span class="hint">Nada sale de tu dispositivo: la lectura se hace aquí mismo.</span></div>
+      <div class="actions"><button class="btn small" id="e-read">Leer correos</button><button class="btn small ghost" id="e-sample">Probar con un ejemplo</button></div>`}
       <div id="e-found"></div>
       <div class="dlg-foot"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="e-add" disabled>Agregar movimientos</button></div></div>`);
     let found = [];
     const draw = () => {
       const box = $('#e-found');
-      if (!found.length) { box.innerHTML = '<div class="empty">No encontré ningún monto. Revisa que el texto tenga la cantidad con signo $.</div>'; $('#e-add').disabled = true; return; }
+      if (!found.length) { box.innerHTML = pre ? `<div class="empty">${pre.read ? 'Leí los correos pero ninguno traía un monto de compra.' : 'No hay avisos nuevos de tu banco desde la última revisión.'}</div>` : '<div class="empty">No encontré ningún monto. Revisa que el texto tenga la cantidad con signo $.</div>'; $('#e-add').disabled = true; return; }
       box.innerHTML = `<p class="small muted" style="margin-bottom:8px">Encontré ${plural(found.length, 'movimiento', 'movimientos')}. Revisa la categoría y la cuenta antes de agregar.</p><div class="found">${found.map((f, i) => `
         <div class="found-row ${f.duplicate ? 'dup' : ''}"><input type="checkbox" data-i="${i}" ${f.duplicate ? '' : 'checked'} aria-label="Incluir">
           <div style="min-width:0"><div class="name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.merchant || 'Sin comercio')}</div><div class="small muted">${S.shortDate(f.date)} · ${esc(f.bank || 'Banco')}${f.last4 ? ` •••• ${esc(f.last4)}` : ''}${f.duplicate ? ' · ya registrado' : ''}</div></div>
@@ -584,14 +592,18 @@
         </div>`).join('')}</div>`;
       $('#e-add').disabled = !found.some((f) => !f.duplicate);
       $$('select[data-k]', box).forEach((s) => s.addEventListener('change', () => { found[s.dataset.i].category = s.value; }));
-      $$('input[type=checkbox]', box).forEach((c) => c.addEventListener('change', () => { found[c.dataset.i].skip = !c.checked; $('#e-add').disabled = found.every((f) => f.skip || (f.duplicate && !c.checked)); }));
+      $$('input[type=checkbox]', box).forEach((c) => c.addEventListener('change', () => { found[c.dataset.i].skip = !c.checked; $('#e-add').disabled = found.every((f) => f.skip); }));
     };
     const read = () => { found = window.Correo.parse($('#e-text').value); found.forEach((f) => { f.skip = f.duplicate; }); draw(); };
-    $('#e-read').addEventListener('click', read);
-    $('#e-sample').addEventListener('click', () => { $('#e-text').value = window.Correo.EJEMPLO; read(); });
+    if (pre) { found = pre.found; found.forEach((f) => { f.skip = f.duplicate; }); draw(); if (!found.some((f) => !f.duplicate)) window.Gmail.markSynced(); }
+    else {
+      $('#e-read').addEventListener('click', read);
+      $('#e-sample').addEventListener('click', () => { $('#e-text').value = window.Correo.EJEMPLO; read(); });
+    }
     $('#e-add').addEventListener('click', () => {
       const add = found.filter((f) => !f.skip);
       for (const f of add) S.addTx({ amount: f.amount, accountId: f.accountId, merchant: f.merchant, date: f.date, category: f.category, kind: f.kind, source: 'correo', emailId: f.key });
+      if (pre) window.Gmail.markSynced();
       window.Motion.closeDialog(dlg());
       toast(`${plural(add.length, 'movimiento agregado', 'movimientos agregados')} desde tus correos`);
     });
@@ -672,6 +684,13 @@
     'add-expense': () => txDialog('gasto'),
     'add-income': () => txDialog('ingreso'),
     'paste-email': () => emailDialog(),
+    'gmail-sync': async (el) => {
+      el.disabled = true; const label = el.innerHTML; el.innerHTML = `${icon('mail')}Revisando…`;
+      try { const res = await window.Gmail.fetchAlerts(); emailDialog(res); }
+      catch (err) { toast(err.message); }
+      finally { el.disabled = false; el.innerHTML = label; }
+    },
+    'gmail-off': () => { window.Gmail.disconnect(); S.state.settings.gmailClientId = ''; S.save(); toast('Gmail desconectado'); },
     transfer: () => transferDialog(),
     'add-account': () => accountDialog(),
     adjust: (el) => adjustDialog(S.accById(el.dataset.id)),
@@ -731,8 +750,9 @@
     if (el.dataset.budget) { S.state.budget[el.dataset.budget] = Math.max(0, S.toCents(el.value || 0) || 0); S.save(); return; }
     if (el.dataset.setting) {
       const k = el.dataset.setting;
-      const v = k === 'expectedIncomeCur' ? el.value : k === 'expectedIncome' ? Math.max(0, S.toCents(el.value || 0) || 0) : parseFloat(el.value) || 0;
+      const v = ['expectedIncomeCur', 'gmailClientId', 'gmailAccount', 'gmailExtraFrom'].includes(k) ? el.value.trim() : k === 'expectedIncome' ? Math.max(0, S.toCents(el.value || 0) || 0) : parseFloat(el.value) || 0;
       S.state.settings[k] = v; S.save(); toast('Guardado');
+      if (k === 'gmailClientId') window.Gmail.preload();
     }
   });
   document.addEventListener('input', (e) => {
@@ -778,5 +798,6 @@
   window.addEventListener('hashchange', render);
   render();
   window.FX.start();
+  window.Gmail.preload();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
